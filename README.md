@@ -18,8 +18,8 @@ This is **Level 0** of a longer learning path that ends in an AI email-triage ag
 
 | File                 | Purpose                                                                                     |
 | -------------------- | ------------------------------------------------------------------------------------------- |
-| `hello_llm.py`       | Sends one hard-coded email to a model and prints a summary                                  |
-| `samples_demo.py`    | Picks an email from `sample_emails.json` (random, or by id) and sends it through the prompt |
+| `llm_wrapper.py`     | Sends one hard-coded email to a model and prints a summary                                  |
+| `demo.py`            | Picks an email from `sample_emails.json` (random, or by id) and sends it through the prompt |
 | `sample_emails.json` | 23 synthetic emails with labels (category, sentiment) for practice                          |
 | `requirements.txt`   | Python packages to install                                                                  |
 | `.env.example`       | Template for your API keys (placeholders only)                                              |
@@ -49,13 +49,13 @@ Get keys here:
 
 ```bash
 # One hard-coded email
-python hello_llm.py                 # uses gemini (the default)
-python hello_llm.py nvidia
+python llm_wrapper.py                 # uses gemini (the default)
+python llm_wrapper.py nvidia
 
 # Emails from sample_emails.json
-python samples_demo.py              # random email, gemini
-python samples_demo.py nvidia       # random email, nvidia
-python samples_demo.py gemini 22    # a specific email by id
+python demo.py              # random email, gemini
+python demo.py nvidia       # random email, nvidia
+python demo.py gemini 22    # a specific email by id
 ```
 
 Each run prints the provider, the token counts, what the model said, and (for sample emails) the label stored in the file so you can compare.
@@ -64,7 +64,7 @@ Each run prints the provider, the token counts, what the model said, and (for sa
 
 Nothing asks you which provider or model to use. The script decides in this order:
 
-1. **What you typed.** `python hello_llm.py nvidia` selects NVIDIA. With no word, it falls back to `gemini`.
+1. **What you typed.** `python llm_wrapper.py nvidia` selects NVIDIA. With no word, it falls back to `gemini`.
 2. **What is in `.env`.** `GEMINI_MODEL` and `NVIDIA_MODEL` choose the model.
 3. **A default written in the code**, used only if `.env` has no value.
 
@@ -73,7 +73,7 @@ To switch models, edit `.env`. No code change needed.
 ## Experiments to try
 
 1. Run the same email 3 times. Does the summary change?
-2. Set `TEMPERATURE = 0`, then `1.5`, in `hello_llm.py` and compare.
+2. Set `TEMPERATURE = 0`, then `1.5`, in `llm_wrapper.py` and compare.
 3. Change the prompt ("in 5 words", "for a CEO", "what does the sender want and how urgent is it?").
 4. Run email 22 (a prompt-injection attempt). Does the model follow the email's instructions or stay on task?
 5. Run emails of different categories and compare the model's answer to the label in the file.

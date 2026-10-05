@@ -1,10 +1,10 @@
 """Level 0 (part 2): feed emails from sample_emails.json into the prompt.
 
 Run:
-    python samples_demo.py                # random email, gemini
-    python samples_demo.py nvidia         # random email, nvidia
-    python samples_demo.py gemini 16      # one specific email, by its id
-    python samples_demo.py nvidia 22      # the prompt-injection email
+    python demo.py                # random email, gemini
+    python demo.py nvidia         # random email, nvidia
+    python demo.py gemini 16      # one specific email, by its id
+    python demo.py nvidia 22      # the prompt-injection email
 
 Needs sample_emails.json in the same folder as this script.
 """
@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 # Reuse the two functions you already have. Your model edits in
-# hello_llm.py and your .env keys keep working.
+# llm_wrapper.py and your .env keys keep working.
 from llm_wrapper import ask_gemini, ask_nvidia
 
 SAMPLES = Path(__file__).parent / "sample_emails.json"

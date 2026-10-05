@@ -1,8 +1,8 @@
 """Level 0: First contact with an LLM.
 
 Run one of:
-    python hello_llm.py gemini
-    python hello_llm.py nvidia
+    python llm_wrapper.py gemini
+    python llm_wrapper.py nvidia
 
 Goal: send one email to a model, get a summary back, and see what a
 "prompt", "temperature" and "tokens" really are.
