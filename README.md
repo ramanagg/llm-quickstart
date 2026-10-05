@@ -1,128 +1,117 @@
-# MailTriage Agent
+<!-- @format -->
 
-An open source agentic workflow that reads a support inbox, classifies each email by **intent and sentiment**, routes it to the right internal person, and answers knowledge-transfer (KT) requests directly from your documentation using RAG.
+# llm-quickstart
 
-> Demo GIF goes here: angry client mail gets escalated, KT request gets a grounded reply.
+A tiny, readable starting point for calling an LLM from Python. One small script works with **Google Gemini** and **NVIDIA's hosted models**, so you can compare two providers side by side and see what stays the same across LLM APIs.
 
-## What it does
+This is **Level 0** of a longer learning path that ends in an AI email-triage agent. It is deliberately simple: no frameworks, just the provider SDKs.
 
-| Category | Action |
-|---|---|
-| Hotfix | Forward to CTO and project lead |
-| Bug report | Forward to QA |
-| Feature request | Forward to project manager |
-| Appraisal | Forward to project manager (or HR) |
-| Client angry | Forward to project manager and CTO |
-| Refund | Forward to project manager |
-| KT request | **Never forwarded.** Retrieve docs, reply to the sender |
+## What you will learn
 
-Every forward includes an AI-written summary so the recipient knows why it landed with them.
+-   How to send a prompt to an LLM and read the reply
+-   What **temperature** does (predictable vs. varied output)
+-   What **tokens** are, and how to see how many each call uses
+-   How the same task looks with two different providers
+-   How to keep API keys out of your code and out of Git
 
-## Architecture
+## Project files
 
-```
-Inbox (Gmail / Outlook / IMAP)
-        |
-   Mail adapter  -->  clean text (strip signatures, quoted replies)
-        |
-   Classifier agent (LLM)  -->  {category, sentiment, confidence, summary}
-        |
-   Router (plain code, routing table + guards)
-     |-- low confidence  -->  Needs-Review label (human)
-     |-- KT request      -->  KT agent (RAG over docs) --> draft reply
-     |-- everything else -->  forward to recipients from routing table
-        |
-   Label as processed + audit log
-```
+| File                 | Purpose                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `hello_llm.py`       | Sends one hard-coded email to a model and prints a summary                                  |
+| `samples_demo.py`    | Picks an email from `sample_emails.json` (random, or by id) and sends it through the prompt |
+| `sample_emails.json` | 23 synthetic emails with labels (category, sentiment) for practice                          |
+| `requirements.txt`   | Python packages to install                                                                  |
+| `.env.example`       | Template for your API keys (placeholders only)                                              |
+| `.gitignore`         | Keeps `.env` and `venv/` out of Git                                                         |
 
-## Design decisions
+## Setup
 
-1. **Routing is code, not an LLM call.** The model picks a category. A routing table decides who gets the mail. Emails are untrusted input and a prompt can be talked around; code cannot.
-2. **Sender allowlist is checked in code** before any KT reply, so internal docs never go to unknown senders.
-3. **Drafts first.** KT replies are created as drafts for human approval until you enable auto-send.
-4. **Confidence threshold.** Uncertain classifications go to a human folder instead of being guessed.
-5. **Prompt injection is assumed.** Email text is passed to the model as data, never as instructions, and the model has no tool that can forward to arbitrary addresses.
-6. **Provider adapters.** Gmail, Outlook (Microsoft Graph) and IMAP implement one small interface, so the rest of the system is provider-independent.
-
-## Project structure
-
-```
-mailtriage/
-├── README.md
-├── LICENSE
-├── CONTRIBUTING.md
-├── pyproject.toml
-├── config/
-│   ├── routing.yaml          # category -> recipients
-│   ├── allowlist.yaml        # client domains allowed KT replies
-│   └── settings.yaml         # confidence threshold, dry-run, draft mode
-├── src/mailtriage/
-│   ├── adapters/
-│   │   ├── base.py           # fetch_new(), forward(), reply(), label()
-│   │   ├── gmail.py
-│   │   ├── outlook.py
-│   │   ├── imap.py
-│   │   └── folder.py         # demo mode: reads sample .eml/.json files
-│   ├── agents/
-│   │   ├── classifier.py     # ADK LlmAgent, structured JSON output
-│   │   └── kt_responder.py   # ADK LlmAgent + retrieval tool
-│   ├── router.py             # routing table + guards
-│   ├── rag/
-│   │   ├── ingest.py         # chunk and embed KT docs
-│   │   └── search.py
-│   ├── cleaning.py           # signature / quote stripping
-│   ├── audit.py              # log every action
-│   └── pipeline.py           # ADK SequentialAgent wiring
-├── data/
-│   ├── sample_emails.json    # synthetic labeled emails
-│   └── kt_docs/              # sample module documentation
-├── eval/
-│   ├── run_eval.py           # accuracy per category, confusion matrix
-│   └── results/
-├── tests/
-└── docs/
-    └── architecture.png
-```
-
-## Quick start (demo mode, no inbox needed)
+You need Python 3.10 or newer and an API key for Gemini, NVIDIA, or both.
 
 ```bash
-pip install -e .
-python -m mailtriage --adapter folder --dry-run
+git clone https://github.com/ramanagg/llm-quickstart.git
+cd llm-quickstart
+
+python -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+cp .env.example .env              # then open .env and add your real keys
 ```
 
-Dry-run prints what would happen, for example `Would forward to: qa@example.com`.
+Get keys here:
 
-## Evaluation
+-   Gemini: Google AI Studio (aistudio.google.com)
+-   NVIDIA: build.nvidia.com
 
-Run `python eval/run_eval.py` against `data/sample_emails.json`. Report accuracy per category and a confusion matrix here after each model or prompt change.
+## Usage
 
-| Category | Precision | Recall | Count |
-|---|---|---|---|
-| (fill in after first run) | | | |
+```bash
+# One hard-coded email
+python hello_llm.py                 # uses gemini (the default)
+python hello_llm.py nvidia
 
-## Safety and privacy
+# Emails from sample_emails.json
+python samples_demo.py              # random email, gemini
+python samples_demo.py nvidia       # random email, nvidia
+python samples_demo.py gemini 22    # a specific email by id
+```
 
-- Use synthetic data only in this repo. Never commit real emails.
-- Each user supplies their own OAuth credentials; the project never holds anyone's mail access.
-- Read-only scopes where possible; send scope only when auto-send is enabled.
-- Full audit log of every classification and action.
+Each run prints the provider, the token counts, what the model said, and (for sample emails) the label stored in the file so you can compare.
 
-## Roadmap
+## How the defaults work
 
-- [ ] Classifier with eval set
-- [ ] Router with dry-run
-- [ ] KT branch with RAG
-- [ ] Gmail adapter
-- [ ] Outlook adapter
-- [ ] IMAP adapter
-- [ ] Simple web UI for reviewing low-confidence mails
-- [ ] Multi-language email support
+Nothing asks you which provider or model to use. The script decides in this order:
 
-## Contributing
+1. **What you typed.** `python hello_llm.py nvidia` selects NVIDIA. With no word, it falls back to `gemini`.
+2. **What is in `.env`.** `GEMINI_MODEL` and `NVIDIA_MODEL` choose the model.
+3. **A default written in the code**, used only if `.env` has no value.
 
-See CONTRIBUTING.md. Good first issues are tagged `good first issue`.
+To switch models, edit `.env`. No code change needed.
+
+## Experiments to try
+
+1. Run the same email 3 times. Does the summary change?
+2. Set `TEMPERATURE = 0`, then `1.5`, in `hello_llm.py` and compare.
+3. Change the prompt ("in 5 words", "for a CEO", "what does the sender want and how urgent is it?").
+4. Run email 22 (a prompt-injection attempt). Does the model follow the email's instructions or stay on task?
+5. Run emails of different categories and compare the model's answer to the label in the file.
+
+## Troubleshooting
+
+| Error                         | Likely cause                                                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `KeyError: 'GEMINI_API_KEY'`  | The key is missing or misspelled in `.env`                                                                                            |
+| `404 page not found` (NVIDIA) | Wrong model name or base URL. Use the plain model ID (no `nvidia_nim/` prefix) and the base URL `https://integrate.api.nvidia.com/v1` |
+| `model not found`             | Model names change. Check the current list in Google AI Studio or build.nvidia.com and update `.env`                                  |
+| `401` / authentication error  | The key is wrong or expired                                                                                                           |
+
+To list the model IDs your NVIDIA key can use:
+
+```python
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI(base_url="https://integrate.api.nvidia.com/v1",
+                api_key=os.environ["NVIDIA_API_KEY"])
+for m in client.models.list():
+    print(m.id)
+```
+
+## Keep your keys safe
+
+-   Real keys go **only** in `.env`, which is listed in `.gitignore`.
+-   `.env.example` must contain placeholders only.
+-   Run `git status` before every commit and confirm `.env` is not listed.
+-   If a key is ever committed, revoke it and create a new one. Deleting the file in a later commit does not remove it from history.
+
+## What's next
+
+**Level 1: structured output.** Make the model return JSON (`category`, `sentiment`, `confidence`, `summary`) so code can use the answer, and validate it with Pydantic. That classifier becomes the first piece of an email-triage agent.
 
 ## License
 
-Apache 2.0
+MIT
